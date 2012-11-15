@@ -70,6 +70,7 @@ def tests():
 	bit_print_pair(ip_and_cidr_to_pair("192.168.2.0/22"))
 	bit_print_pair(ip_and_cidr_to_pair("10.0.0.0/8"))
 
+# check command line args
 if len(sys.argv) < 3:
 	
 	if len(sys.argv) == 2 and sys.argv[1] == "test":
@@ -78,11 +79,12 @@ if len(sys.argv) < 3:
 		print "USAGE: aclgrep.py ip_adress file [, file, file, ...]"
 	exit()
 
-# compile all patterns to regex
+ip_address = ip_to_bits(sys.argv[1])
+
+# compile all patterns to regexes
 mask_patterns = [ re.compile(p) for p in mask_patterns ]
 cidr_patterns = [ re.compile(p) for p in cidr_patterns ]
 
-ip_address = ip_to_bits(sys.argv[1])
 # check all lines in all files
 for arg in sys.argv[2:]:
 	file = open(arg,"r")
