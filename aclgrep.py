@@ -5,6 +5,7 @@
 import socket, struct, sys, re
 
 # Configuration
+# Add special patterns to detect IP networks here
 cidr_patterns = [
 	r"\D(\d+\.\d+\.\d+\.\d+\/\d+)\D",
 ]
@@ -13,12 +14,15 @@ mask_patterns = [
 	r"\D(\d+\.\d+\.\d+\.\d+\D\d+\.\d+\.\d+\.\d+)\D",
 ]
 
+splitter = re.compile(r"[^0-9.]")
+
 
 def bit_print_pair(numbers):
 	'''Prints the given numbers as 32 digit binary.'''
 	print bin(numbers[0])[2:].rjust(32,'0'), bin(numbers[1])[2:].rjust(32,'0')
 
 def ip_to_bits(address):
+	'''Turns an IP address in dot notation into a single long value.'''
 	return struct.unpack("!L", socket.inet_aton(address))[0]
 	
 def ip_in_net(ip, net):
@@ -27,7 +31,10 @@ def ip_in_net(ip, net):
 	return (net[0] & net[1] == ip_address & net[1])
 
 def ip_and_mask_to_pair(pattern):
-	parts = pattern.split(" ")
+	'''Takes a mask pattern and creates a pair (net address, subnetmask) from it.
+	   Detects automatically if the mask is a subnetmask or a wildcard mask, assuming the bits are
+	   set continuously in either.'''
+	parts = re.split(splitter, pattern)
 	net = ip_to_bits(parts[0])
 	net_or_wildcard = ip_to_bits(parts[1])
 	
@@ -45,6 +52,7 @@ def ip_and_mask_to_pair(pattern):
 	return (net, 0xffffffff ^ net_or_wildcard)
 
 def ip_and_cidr_to_pair(pattern):
+	'''Takes a CIDR pattern and creates a pair (net address, subnetmask) from it.'''
 	parts = pattern.split("/")
 	net = ip_to_bits(parts[0])
 	wildcard = (1 << (32-int(parts[1])))-1
@@ -53,6 +61,7 @@ def ip_and_cidr_to_pair(pattern):
 def tests():
 	'''Run a few tests.'''
 	bit_print_pair(ip_and_mask_to_pair("192.168.2.0 255.255.255.0"))
+	bit_print_pair(ip_and_mask_to_pair("192.168.2.0/255.255.255.0"))
 	bit_print_pair(ip_and_mask_to_pair("192.168.2.0 0.0.0.255"))
 	bit_print_pair(ip_and_mask_to_pair("192.168.2.0 255.255.252.0"))
 	bit_print_pair(ip_and_mask_to_pair("10.0.0.0 255.0.0.0"))
@@ -61,8 +70,12 @@ def tests():
 	bit_print_pair(ip_and_cidr_to_pair("192.168.2.0/22"))
 	bit_print_pair(ip_and_cidr_to_pair("10.0.0.0/8"))
 
-if len(sys.argv) < 2:
-	print "USAGE: aclgrep.py ip_adress [files, ...]"
+if len(sys.argv) < 3:
+	
+	if len(sys.argv) == 2 and sys.argv[1] == "test":
+		tests()
+	else:
+		print "USAGE: aclgrep.py ip_adress file [, file, file, ...]"
 	exit()
 
 # compile all patterns to regex
