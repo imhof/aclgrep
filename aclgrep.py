@@ -2,7 +2,7 @@
 
 '''Simple script to grep for networks (net + wildcard, subnetmask or CIDR) containing a given IP address.'''
 
-import socket, struct, sys, re
+import socket, struct, sys, re, fileinput
 
 # Configuration
 # Add special patterns to detect IP networks here
@@ -71,12 +71,12 @@ def tests():
 	bit_print_pair(ip_and_cidr_to_pair("10.0.0.0/8"))
 
 # check command line args
-if len(sys.argv) < 3:
-	
-	if len(sys.argv) == 2 and sys.argv[1] == "test":
-		tests()
-	else:
-		print "USAGE: aclgrep.py ip_adress file [, file, file, ...]"
+if len(sys.argv) == 2 and sys.argv[1] == "test":
+	tests()
+	exit()
+
+if len(sys.argv) < 2:
+	print "USAGE: aclgrep.py ip_adress file [, file, file, ...]"
 	exit()
 
 ip_address = ip_to_bits(sys.argv[1])
@@ -85,28 +85,26 @@ ip_address = ip_to_bits(sys.argv[1])
 mask_patterns = [ re.compile(p) for p in mask_patterns ]
 cidr_patterns = [ re.compile(p) for p in cidr_patterns ]
 
-# check all lines in all files
-for arg in sys.argv[2:]:
-	file = open(arg,"r")
-	for line in file.readlines():
-		line_has_matched = False
-		for p in mask_patterns:
-			m = p.search(line)
-			while m:
-				line_has_matched = True
-				net = ip_and_mask_to_pair(m.group(1))
-				if ip_in_net(ip_address, net):
-					print arg + ":" + line
-				m = p.search(line, m.start() + 1)
-		
-		# prevent CIDR matches if a mask match was already found
-		if line_has_matched:
-			continue
-		
-		for p in cidr_patterns:
-			m = p.search(line)
-			while m:
-				net = ip_and_cidr_to_pair(m.group(1))
-				if ip_in_net(ip_address,net):
-					print arg + ":" + line
-				m = p.search(line, m.start() + 1)
+# check all lines in all files (or stdin)
+for line in fileinput.input(sys.argv[2:]):
+	line_has_matched = False
+	for p in mask_patterns:
+		m = p.search(line)
+		while m:
+			line_has_matched = True
+			net = ip_and_mask_to_pair(m.group(1))
+			if ip_in_net(ip_address, net):
+				print fileinput.filename() + ":" + line
+			m = p.search(line, m.start() + 1)
+	
+	# prevent CIDR matches if a mask match was already found
+	if line_has_matched:
+		continue
+	
+	for p in cidr_patterns:
+		m = p.search(line)
+		while m:
+			net = ip_and_cidr_to_pair(m.group(1))
+			if ip_in_net(ip_address,net):
+				print arg + ":" + line
+			m = p.search(line, m.start() + 1)
