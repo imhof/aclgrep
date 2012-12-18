@@ -94,7 +94,7 @@ for line in fileinput.input(sys.argv[2:]):
 			line_has_matched = True
 			net = ip_and_mask_to_pair(m.group(1))
 			if ip_in_net(ip_address, net):
-				print fileinput.filename() + ":" + line
+				print fileinput.filename() + ":" + line,
 			m = p.search(line, m.start() + 1)
 	
 	# prevent CIDR matches if a mask match was already found
@@ -106,5 +106,5 @@ for line in fileinput.input(sys.argv[2:]):
 		while m:
 			net = ip_and_cidr_to_pair(m.group(1))
 			if ip_in_net(ip_address,net):
-				print arg + ":" + line
+				print arg + ":" + line,
 			m = p.search(line, m.start() + 1)
