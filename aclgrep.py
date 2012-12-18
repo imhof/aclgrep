@@ -106,5 +106,5 @@ for line in fileinput.input(sys.argv[2:]):
 		while m:
 			net = ip_and_cidr_to_pair(m.group(1))
 			if ip_in_net(ip_address,net):
-				print arg + ":" + line,
+				print fileinput.filename() + ":" + line,
 			m = p.search(line, m.start() + 1)
