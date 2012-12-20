@@ -23,7 +23,11 @@ def bit_print_pair(numbers):
 
 def ip_to_bits(address):
 	'''Turns an IP address in dot notation into a single long value.'''
-	return struct.unpack("!L", socket.inet_aton(address))[0]
+	
+	# Fixup IP addresses with leading zeros
+	fixed_address = ".".join([str(int(x)) for x in address.split(".")])
+	
+	return struct.unpack("!L", socket.inet_aton(fixed_address))[0]
 	
 def ip_in_net(ip, net):
 	'''Checks if an IP adress is contained in a network described by a pair (net address, subnetmask).
