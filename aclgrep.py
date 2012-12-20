@@ -105,6 +105,11 @@ for line in fileinput.input(sys.argv[(2+match_any):]):
 		print fileinput.filename() + ":" + line,
 		continue
 
+	# check for the IP address directly first
+	if ip_string in line:
+		print fileinput.filename() + ":" + line,
+		continue
+
 	for p in mask_patterns:
 		m = p.search(line)
 		while m:
