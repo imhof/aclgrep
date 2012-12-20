@@ -75,23 +75,36 @@ def tests():
 	bit_print_pair(ip_and_cidr_to_pair("10.0.0.0/8"))
 
 # check command line args
-if len(sys.argv) == 2 and sys.argv[1] == "test":
+if len(sys.argv) == 2 and sys.argv[1] == "-test":
 	tests()
 	exit()
 
 if len(sys.argv) < 2:
-	print "USAGE: aclgrep.py ip_adress file [, file, file, ...]"
+	print "USAGE: aclgrep.py [-any] ip_adress file [, file, file, ...]"
 	exit()
 
-ip_address = ip_to_bits(sys.argv[1])
+match_any = False
+if sys.argv[1] == "-any":
+	ip_string = sys.argv[2]
+	match_any = True
+else:
+	ip_string = sys.argv[1]
+
+ip_address = ip_to_bits(ip_string)
 
 # compile all patterns to regexes
 mask_patterns = [ re.compile(p) for p in mask_patterns ]
 cidr_patterns = [ re.compile(p) for p in cidr_patterns ]
 
 # check all lines in all files (or stdin)
-for line in fileinput.input(sys.argv[2:]):
+for line in fileinput.input(sys.argv[(2+match_any):]):
 	line_has_matched = False
+
+	# check any if desired
+	if match_any and "any" in line:
+		print fileinput.filename() + ":" + line,
+		continue
+
 	for p in mask_patterns:
 		m = p.search(line)
 		while m:
