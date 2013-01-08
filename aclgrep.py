@@ -77,11 +77,11 @@ def tests():
 # check command line args
 if len(sys.argv) == 2 and sys.argv[1] == "-test":
 	tests()
-	exit()
+	sys.exit()
 
 if len(sys.argv) < 2:
 	print "USAGE: aclgrep.py [-any] ip_adress file [, file, file, ...]"
-	exit()
+	sys.exit()
 
 match_any = False
 if sys.argv[1] == "-any":
