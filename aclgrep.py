@@ -14,6 +14,10 @@ mask_patterns = [
 	r"\D(\d+\.\d+\.\d+\.\d+\D\d+\.\d+\.\d+\.\d+)\D",
 ]
 
+aclname_patterns = [
+	r"ip access-list( extended)? (.*)$",
+]
+
 splitter = re.compile(r"[^0-9.]")
 
 
@@ -93,16 +97,26 @@ else:
 ip_address = ip_to_bits(ip_string)
 
 # compile all patterns to regexes
-mask_patterns = [ re.compile(p) for p in mask_patterns ]
-cidr_patterns = [ re.compile(p) for p in cidr_patterns ]
+mask_patterns    = [ re.compile(p) for p in mask_patterns ]
+cidr_patterns    = [ re.compile(p) for p in cidr_patterns ]
+aclname_patterns = [ re.compile(p) for p in aclname_patterns ]
+
+last_aclname = "(unknown)"
 
 # check all lines in all files (or stdin)
 for line in fileinput.input(sys.argv[(2+match_any):]):
 	line_has_matched = False
+	
+	# check for ACL name
+	for p in aclname_patterns:
+		m = p.search(line)
+		if m:
+			last_aclname = m.group(2)
+			continue
 
 	# check any if desired
 	if match_any and "any" in line:
-		print fileinput.filename() + ":" + line,
+		print fileinput.filename() + " (" + last_aclname + "):" + line,
 		continue
 
 	# check for the IP address directly first
@@ -116,7 +130,7 @@ for line in fileinput.input(sys.argv[(2+match_any):]):
 			line_has_matched = True
 			net = ip_and_mask_to_pair(m.group(1))
 			if ip_in_net(ip_address, net):
-				print fileinput.filename() + ":" + line,
+				print fileinput.filename() + " (" + last_aclname + "):" + line,
 				break
 			m = p.search(line, m.start() + 1)
 	
@@ -129,6 +143,6 @@ for line in fileinput.input(sys.argv[(2+match_any):]):
 		while m:
 			net = ip_and_cidr_to_pair(m.group(1))
 			if ip_in_net(ip_address,net):
-				print fileinput.filename() + ":" + line,
+				print fileinput.filename()+ " (" + last_aclname + "):" + line,
 				break
 			m = p.search(line, m.start() + 1)
