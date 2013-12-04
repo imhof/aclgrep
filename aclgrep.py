@@ -21,10 +21,6 @@ aclname_patterns = [
 splitter = re.compile(r"[^0-9.]")
 
 
-def bit_print_pair(numbers):
-    '''Prints the given numbers as 32 digit binary.'''
-    print bin(numbers[0])[2:].rjust(32,'0'), bin(numbers[1])[2:].rjust(32,'0')
-
 def ip_to_bits(address):
     '''Turns an IP address in dot notation into a single long value.'''
 
@@ -39,7 +35,7 @@ def ip_to_bits(address):
 def ip_in_net(ip, net):
     '''Checks if an IP adress is contained in a network described by a pair (net address, subnetmask).
        All values are given as longs.'''
-    return (net[0] & net[1] == ip_address & net[1])
+    return (net[0] & net[1] == ip & net[1])
 
 def ip_and_mask_to_pair(pattern):
     '''Takes a mask pattern and creates a pair (net address, subnetmask) from it.

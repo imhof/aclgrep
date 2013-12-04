@@ -6,7 +6,7 @@ import unittest
 
 # import aclgrep code from one directory above
 sys.path.append("..")
-from aclgrep import ip_and_mask_to_pair, ip_and_cidr_to_pair, ip_to_bits
+from aclgrep import ip_and_mask_to_pair, ip_and_cidr_to_pair, ip_to_bits, ip_in_net
 
 class patterns(unittest.TestCase):
     def setUp(self):
@@ -42,6 +42,10 @@ class patterns(unittest.TestCase):
         # check values
         self.assertEqual((0x0a000000, 0xff000000), ip_and_cidr_to_pair("10.0.0.0/8"))
         self.assertEqual((0xc0a80200, 0xfffffc00), ip_and_cidr_to_pair("192.168.2.0/22"))
+
+    def testIpInNet(self):
+        self.assertTrue(ip_in_net(0x0a010101, (0x0a000000, 0xff000000)))
+        self.assertFalse(ip_in_net(0x0a010101, (0x0a000000, 0xffffff00)))
 
 if __name__ == '__main__':
     unittest.main()
