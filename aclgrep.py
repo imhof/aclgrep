@@ -3,6 +3,7 @@
 '''Simple script to grep for networks (net + wildcard, subnetmask or CIDR) containing a given IP address.'''
 
 import socket, struct, sys, re, fileinput
+from optparse import OptionParser
 
 # Configuration
 # Add special patterns to detect IP networks here
@@ -67,17 +68,16 @@ def ip_and_cidr_to_pair(pattern):
 
 if __name__ == '__main__':
     # check command line args
-    if len(sys.argv) < 2:
-        print "USAGE: aclgrep.py [-any] ip_adress file [, file, file, ...]"
+    parser = OptionParser(usage="Usage: %prog [options] ip_address [file, file, ...]")
+    parser.add_option("-a", "--any", dest="match_any", action="store_true", default=False, help="Match ACLs with 'any', too")
+
+    (options, args) = parser.parse_args()
+
+    if len(args) < 1:
+        print "USAGE: aclgrep.py [-a|--any] ip_adress file [, file, file, ...]"
         sys.exit()
 
-    match_any = False
-    if sys.argv[1] == "-any":
-        ip_string = sys.argv[2]
-        match_any = True
-    else:
-        ip_string = sys.argv[1]
-
+    ip_string = args.pop(0)
     ip_address = ip_to_bits(ip_string)
 
     # compile all patterns to regexes
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     last_aclname = "(unknown)"
 
     # check all lines in all files (or stdin)
-    for line in fileinput.input(sys.argv[(2+match_any):]):
+    for line in fileinput.input(args):
         line_has_matched = False
 
         # check for ACL name
@@ -99,7 +99,7 @@ if __name__ == '__main__':
                 continue
 
         # check any if desired
-        if match_any and "any" in line:
+        if options.match_any and "any" in line:
             print fileinput.filename() + " (" + last_aclname + "):" + line,
             continue
 
