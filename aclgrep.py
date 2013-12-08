@@ -5,6 +5,82 @@
 import socket, struct, sys, re, fileinput
 from optparse import OptionParser
 
+
+class ACLParser:
+    """Helper class to parse an ACL file line by line.
+       This will find out protocol, networks and ports for each line and keeps track
+       of the name of the current ACL rule."""
+    source_net = None
+    source_port = None
+    destination_net = None
+    destination_port = None
+    protocol = None
+
+    # Add special patterns to detect IP networks and hosts here
+    # Make sure they start with the most specific, as they are tried in order
+    net_patterns = [
+        r"host\D+(\d+\.\d+\.\d+\.\d+)",
+        r"\D(\d+\.\d+\.\d+\.\d+\D\d+\.\d+\.\d+\.\d+)",
+        r"\D(\d+\.\d+\.\d+\.\d+\/\d+)",
+        r"\s(any)",
+    ]
+
+    # Add special patterns to detect port descriptions here
+    # Make sure they start with the most specific, as they are tried in order
+    port_patterns = [
+        r"\s(range\s+\d+\s+\d+)",
+        r"\s(n?eq\s+\d+)",
+        r"\s(n?eq\s+\S+)",
+        r"\s(gt\s+\d+)",
+        r"\s(lt\s+\d+)",
+        r"\s(any)",
+    ]
+
+    def __init__(self):
+        # compile all patterns to regexes
+        self.net_patterns = [re.compile(p) for p in self.net_patterns]
+        self.port_patterns = [re.compile(p) for p in self.port_patterns]
+
+    def reset_transients(self):
+        self.source_net = None
+        self.source_port = None
+        self.destination_net = None
+        self.destination_port = None
+        self.protocol = None
+
+    def match_patterns(self, line, patterns):
+        """We might get invalid matches, e.g. "source_mask destination_net. This gets sorted out by taking
+           the first and the last match later on."""
+        hits = {}
+        for p in patterns:
+            m = p.search(line)
+            while m:
+                if not m.start() in hits:
+                    hits[m.start()] = m.group(1)
+                m = p.search(line, m.start() + 1)
+        return hits
+
+    def assign_source_dest(self, hits):
+        """Take the first and last one to weed out the invalid hits."""
+        result = [None, None]
+        sorted_keys = sorted(hits.keys())
+        if len(sorted_keys) > 0:
+            result[0] = hits[sorted_keys[0]]
+        if len(sorted_keys) > 1:
+            result[1] = hits[sorted_keys[-1]]
+        return result
+
+    def next_line(self, line):
+        self.reset_transients()
+
+        # first look for all net matches
+        hits = self.match_patterns(line, self.net_patterns)
+        (self.source_net, self.destination_net) = self.assign_source_dest(hits)
+
+        # second look for all port matches
+        hits = self.match_patterns(line, self.port_patterns)
+        (self.source_port, self.destination_port) = self.assign_source_dest(hits)
+
 class ACLGrepper:
     '''The main class which handles the grep process as a whole.'''
 
@@ -131,6 +207,10 @@ if __name__ == '__main__':
     # check command line args
     parser = OptionParser(usage="Usage: %prog [options] ip_address [file, file, ...]")
     parser.add_option("-a", "--any", dest="match_any", action="store_true", default=False, help="Match ACLs with 'any', too")
+    parser.add_option("-i", "--sip", dest="source_ip", default=None, help="Source IP to look for")
+    parser.add_option("-p", "--sport", dest="source_port", default=None, help="Source port to look for")
+    parser.add_option("-I", "--dip", dest="destination_ip", default=None, help="Destination IP to look for")
+    parser.add_option("-P", "--dport", dest="destination_port", default=None, help="Destination port to look for")
 
     (options, args) = parser.parse_args()
 
