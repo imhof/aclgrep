@@ -67,5 +67,15 @@ class ACLParserTest(unittest.TestCase):
         self.assertEqual("neq 1035", self.parser.source_port)
         self.assertEqual("any", self.parser.destination_port)
 
+    def testProtocol(self):
+        self.parser.next_line("permit udp 10.221.88.66 0.0.0.1 eq 4711 host 224.0.0.2 eq 4711")
+        self.assertEqual("udp", self.parser.protocol)
+        self.parser.next_line("access-list acl762 line 3 extended permit tcp any host 10.224.6.235 eq ssh")
+        self.assertEqual("tcp", self.parser.protocol)
+        self.parser.next_line("40 deny icmp any 10.221.224.0/32")
+        self.assertEqual("icmp", self.parser.protocol)
+        self.parser.next_line("40 deny ip any 10.221.224.0/32")
+        self.assertEqual("ip", self.parser.protocol)
+
 if __name__ == '__main__':
     unittest.main()

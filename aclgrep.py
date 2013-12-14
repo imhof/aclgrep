@@ -36,10 +36,15 @@ class ACLParser:
         r"\s(any)",
     ]
 
+    protocol_patterns = [
+        r"\s(icmp|ip|tcp|udp)\s"
+    ]
+
     def __init__(self):
         # compile all patterns to regexes
         self.net_patterns = [re.compile(p) for p in self.net_patterns]
         self.port_patterns = [re.compile(p) for p in self.port_patterns]
+        self.protocol_patterns = [re.compile(p) for p in self.protocol_patterns]
 
     def reset_transients(self):
         self.source_net = None
@@ -80,6 +85,11 @@ class ACLParser:
         # second look for all port matches
         hits = self.match_patterns(line, self.port_patterns)
         (self.source_port, self.destination_port) = self.assign_source_dest(hits)
+
+        # look for all protocol matches
+        hits = self.match_patterns(line, self.protocol_patterns)
+        if len(hits) == 1:
+            self.protocol = hits.popitem()[1]
 
 class ACLGrepper:
     '''The main class which handles the grep process as a whole.'''
