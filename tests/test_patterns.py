@@ -12,7 +12,7 @@ class patterns(unittest.TestCase):
 
     def setUp(self):
         # the parameters do not matter for the generic tests
-        self.ag = ACLGrepper("1.1.1.1", False)
+        self.ag = ACLGrepper()
 
     def testIpToBits(self):
         # go over range

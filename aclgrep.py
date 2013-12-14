@@ -93,35 +93,31 @@ class ACLParser:
 
 class ACLGrepper:
     '''The main class which handles the grep process as a whole.'''
-
-    # Configuration
-    # Add special patterns to detect IP networks here
-    cidr_patterns = [
-        r"\D(\d+\.\d+\.\d+\.\d+\/\d+)\D",
-    ]
-    mask_patterns = [
-        r"\D(\d+\.\d+\.\d+\.\d+\D\d+\.\d+\.\d+\.\d+)\D",
-    ]
-    aclname_patterns = [
-        r"ip access-list( extended)? (.*)$",
-    ]
     splitter = re.compile(r"[^0-9.]")
 
     last_aclname = "(unknown)"
 
-    ip_string = ""
-    ip_address = 0
+    source_ip_string = None
+    source_ip_address = None
+    source_port = None
+
+    destination_ip_string = None
+    destination_ip_address = None
+    destination_port = None
+
     match_any = False
 
 
-    def __init__(self, ip_string, match_any):
-        # compile all patterns to regexes
-        self.mask_patterns    = [ re.compile(p) for p in self.mask_patterns ]
-        self.cidr_patterns    = [ re.compile(p) for p in self.cidr_patterns ]
-        self.aclname_patterns = [ re.compile(p) for p in self.aclname_patterns ]
+    def __init__(self, sip = None, sport = None, dip = None, dport = None, match_any = None):
+        self.source_ip_string = sip
+        if sip:
+            self.source_ip_address = self.ip_to_bits(sip)
+        self.source_port = sport
 
-        self.ip_string = ip_string
-        self.ip_address = self.ip_to_bits(ip_string)
+        self.destination_ip_string = dip
+        if dip:
+            self.destination_ip_address = self.ip_to_bits(dip)
+        self.destination_port = dport
 
         self.match_any = match_any
 
@@ -229,7 +225,7 @@ if __name__ == '__main__':
         sys.exit()
 
     # initialize grepper and...
-    grepper = ACLGrepper(args.pop(0), options.match_any)
+    grepper = ACLGrepper(args.pop(0), options.source_ip, options.source_port, options.destination_ip, options.destination_port, options.match_any)
 
     # ...check all lines in all files (or stdin)
     for line in fileinput.input(args):
