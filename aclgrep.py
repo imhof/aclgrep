@@ -82,6 +82,14 @@ class ACLParser:
         hits = self.match_patterns(line, self.net_patterns)
         (self.source_net, self.destination_net) = self.assign_source_dest(hits)
 
+        # transform simple hosts into CIDR form
+        if self.source_net and not "any" in self.source_net and not "/" in self.source_net and not " " in self.source_net:
+            self.source_net += "/32"
+        if self.destination_net and not "any" in self.destination_net and not "/" in self.destination_net and not " " in self.destination_net:
+            self.destination_net += "/32"
+
+
+
         # second look for all port matches
         hits = self.match_patterns(line, self.port_patterns)
         (self.source_port, self.destination_port) = self.assign_source_dest(hits)
@@ -95,7 +103,7 @@ class ACLGrepper:
     '''The main class which handles the grep process as a whole.'''
     splitter = re.compile(r"[^0-9.]")
 
-    last_aclname = "(unknown)"
+    parser = ACLParser()
 
     source_ip_string = None
     source_ip_address = None
@@ -165,53 +173,35 @@ class ACLGrepper:
         wildcard = (1 << (32-int(parts[1])))-1
         return (net, 0xffffffff ^ wildcard)
 
+    def net_string_to_pair(self, pattern):
+        if pattern.find("/") == -1:
+            return self.ip_and_mask_to_pair(pattern)
+        else:
+            return self.ip_and_cidr_to_pair(pattern)
+
+
     def grep(self, line):
-        line_has_matched = False
+        self.parser.next_line(line)
 
-        # check for ACL name
-        for p in self.aclname_patterns:
-            m = p.search(line)
-            if m:
-                self.last_aclname = m.group(2).strip()
-                continue
+        # FIXME check any if desired
+        if self.source_ip_address:
+            if not self.parser.source_net:
+                return False
+            if not self.ip_in_net(self.source_ip_address, self.net_string_to_pair(self.parser.source_net)):
+                return False
 
-        # check any if desired
-        if self.match_any and "any" in line:
-            print ("%s (%s): %s" % (fileinput.filename(), self.last_aclname , line)),
-            return
+        if self.destination_ip_address:
+            if not self.parser.destination_net:
+                return False
+            if not self.ip_in_net(self.destination_ip_address, self.net_string_to_pair(self.parser.destination_net)):
+                return False
 
-        # check for the IP address directly first
-        if self.ip_string in line:
-            print fileinput.filename() + ":" + line,
-            return
-
-        for p in self.mask_patterns:
-            m = p.search(line)
-            while m:
-                line_has_matched = True
-                net = self.ip_and_mask_to_pair(m.group(1))
-                if self.ip_in_net(self.ip_address, net):
-                    print fileinput.filename() + " (" + self.last_aclname + "):" + line,
-                    break
-                m = p.search(line, m.start() + 1)
-
-        # prevent CIDR matches if a mask match was already found
-        if line_has_matched:
-            return
-
-        for p in self.cidr_patterns:
-            m = p.search(line)
-            while m:
-                net = self.ip_and_cidr_to_pair(m.group(1))
-                if self.ip_in_net(self.ip_address,net):
-                    print fileinput.filename() + " (" + self.last_aclname + "):" + line,
-                    break
-                m = p.search(line, m.start() + 1)
+        return True
 
 
 if __name__ == '__main__':
     # check command line args
-    parser = OptionParser(usage="Usage: %prog [options] ip_address [file, file, ...]")
+    parser = OptionParser(usage="Usage: %prog [options] [file, file, ...]")
     parser.add_option("-a", "--any", dest="match_any", action="store_true", default=False, help="Match ACLs with 'any', too")
     parser.add_option("-i", "--sip", dest="source_ip", default=None, help="Source IP to look for")
     parser.add_option("-p", "--sport", dest="source_port", default=None, help="Source port to look for")
@@ -220,13 +210,14 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
-    if len(args) < 1:
-        print "USAGE: aclgrep.py [-a|--any] ip_adress file [, file, file, ...]"
+    if len(sys.argv) < 2:
+        parser.print_help()
         sys.exit()
 
     # initialize grepper and...
-    grepper = ACLGrepper(args.pop(0), options.source_ip, options.source_port, options.destination_ip, options.destination_port, options.match_any)
+    grepper = ACLGrepper(options.source_ip, options.source_port, options.destination_ip, options.destination_port, options.match_any)
 
     # ...check all lines in all files (or stdin)
     for line in fileinput.input(args):
-        grepper.grep(line)
+        if grepper.grep(line):
+            print line

@@ -12,7 +12,20 @@ class matching(unittest.TestCase):
 
     def setUp(self):
         # the parameters do not matter for the generic tests
-        self.ag = ACLGrepper()
+        self.onlySIP = ACLGrepper("192.168.2.12")
+        self.onlyDIP = ACLGrepper(None, None, "224.1.156.12")
+
+    def testMatchSIP(self):
+        self.assertTrue(self.onlySIP.grep("access-list acl762 line 2 extended permit ip 192.168.2.0 255.255.255.0 10.221.34.0 255.255.255.0 (hitcnt=9) 0xfe82efcc"))
+        self.assertFalse(self.onlySIP.grep("access-list acl762 line 2 extended permit ip 192.168.0.0 255.255.255.0 10.221.34.0 255.255.255.0 (hitcnt=9) 0xfe82efcc"))
+
+        self.assertFalse(self.onlySIP.grep("just some random text"))
+
+    def testMatchDIP(self):
+        self.assertTrue(self.onlyDIP.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
+        self.assertFalse(self.onlyDIP.grep("10 permit udp 10.221.224.120/29 eq 4711 224.2.3.102/16 eq 4711"))
+
+        self.assertFalse(self.onlyDIP.grep("just some random text"))
 
 if __name__ == '__main__':
     unittest.main()

@@ -25,7 +25,7 @@ class ACLParserTest(unittest.TestCase):
 
         self.parser.next_line("permit udp 10.111.88.66 0.0.0.1 eq 4711 host 114.0.0.1 eq 4711")
         self.assertEqual("10.111.88.66 0.0.0.1", self.parser.source_net)
-        self.assertEqual("114.0.0.1", self.parser.destination_net)
+        self.assertEqual("114.0.0.1/32", self.parser.destination_net)
 
         # mixed cases
         self.parser.next_line("permit udp 10.111.88.66 0.0.0.1 eq 4711 10.111.34.0/14 eq 4711")
@@ -35,6 +35,11 @@ class ACLParserTest(unittest.TestCase):
         self.parser.next_line("permit udp 10.111.34.0/14 eq 4711 10.111.88.66 0.0.0.1 eq 4711 ")
         self.assertEqual("10.111.34.0/14", self.parser.source_net)
         self.assertEqual("10.111.88.66 0.0.0.1", self.parser.destination_net)
+
+        # host cases
+        self.parser.next_line("access-list 132 permit gre host 195.143.113.118 host 111.168.171.55")
+        self.assertEqual("195.143.113.118/32", self.parser.source_net)
+        self.assertEqual("111.168.171.55/32", self.parser.destination_net)
 
         # any cases
         self.parser.next_line("50 deny ip any 10.111.114.117/32")
@@ -48,7 +53,7 @@ class ACLParserTest(unittest.TestCase):
     def testSourceAndDestPort(self):
         self.parser.next_line("permit udp 10.111.88.66 0.0.0.1 eq 4711 host 114.0.0.1 eq 4711")
         self.assertEqual("10.111.88.66 0.0.0.1", self.parser.source_net)
-        self.assertEqual("114.0.0.1", self.parser.destination_net)
+        self.assertEqual("114.0.0.1/32", self.parser.destination_net)
 
         self.parser.next_line("permit udp 10.111.88.66 0.0.0.1 eq 4711 10.111.34.0/14 eq 1986")
         self.assertEqual("eq 4711", self.parser.source_port)
