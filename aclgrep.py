@@ -187,12 +187,16 @@ class ACLGrepper:
 
         # FIXME check any if desired
         if self.source_ip_address:
+            if self.parser.source_net == "any":
+                return self.match_any
             if not self.parser.source_net:
                 return False
             if not self.ip_in_net(self.source_ip_address, self.net_string_to_pair(self.parser.source_net)):
                 return False
 
         if self.destination_ip_address:
+            if self.parser.destination_net == "any":
+                return self.match_any
             if not self.parser.destination_net:
                 return False
             if not self.ip_in_net(self.destination_ip_address, self.net_string_to_pair(self.parser.destination_net)):

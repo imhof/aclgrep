@@ -12,11 +12,18 @@ class matching(unittest.TestCase):
 
     def setUp(self):
         pass
+        
+    def testMatchAny(self):
+        grepper = ACLGrepper("192.168.2.12", None, None, None, None, True)
+        self.assertTrue(grepper.grep("access-list aclXFG line 46 extended deny udp any any eq netbios-ns (hitcnt=920296) 0x4c3b867e"))
+        self.assertTrue(grepper.grep("access-list aclXFG line 46 extended deny udp any host 10.1.1.1 eq netbios-ns (hitcnt=920296) 0x4c3b867e"))
+        self.assertFalse(grepper.grep("access-list aclXFG line 46 extended deny udp host 10.1.1.1 any eq netbios-ns (hitcnt=920296) 0x4c3b867e"))        
 
     def testMatchSIP(self):
         grepper = ACLGrepper("192.168.2.12")
         self.assertTrue(grepper.grep("access-list acl762 line 2 extended permit ip 192.168.2.0 255.255.255.0 10.221.34.0 255.255.255.0 (hitcnt=9) 0xfe82efcc"))
         self.assertFalse(grepper.grep("access-list acl762 line 2 extended permit ip 192.168.0.0 255.255.255.0 10.221.34.0 255.255.255.0 (hitcnt=9) 0xfe82efcc"))
+        self.assertFalse(grepper.grep("access-list aclXFG line 46 extended deny udp any any eq netbios-ns (hitcnt=920296) 0x4c3b867e"))
 
         self.assertFalse(grepper.grep("just some random text"))
 
@@ -59,6 +66,7 @@ class matching(unittest.TestCase):
         grepper = ACLGrepper(None, None, "224.1.156.12")
         self.assertTrue(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
         self.assertFalse(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.2.3.102/16 eq 4711"))
+        self.assertFalse(grepper.grep("access-list aclXFG line 46 extended deny udp any any eq netbios-ns (hitcnt=920296) 0x4c3b867e"))
 
         self.assertFalse(grepper.grep("just some random text"))
         
