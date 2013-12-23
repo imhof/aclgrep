@@ -113,10 +113,11 @@ class ACLGrepper:
     destination_ip_address = None
     destination_port = None
 
+    protocol = None
     match_any = False
 
 
-    def __init__(self, sip = None, sport = None, dip = None, dport = None, match_any = None):
+    def __init__(self, sip = None, sport = None, dip = None, dport = None, protocol = None, match_any = None):
         self.source_ip_string = sip
         if sip:
             self.source_ip_address = self.ip_to_bits(sip)
@@ -127,6 +128,7 @@ class ACLGrepper:
             self.destination_ip_address = self.ip_to_bits(dip)
         self.destination_port = dport
 
+        self.protocol = protocol
         self.match_any = match_any
 
     def ip_to_bits(self, address):
@@ -195,6 +197,10 @@ class ACLGrepper:
                 return False
             if not self.ip_in_net(self.destination_ip_address, self.net_string_to_pair(self.parser.destination_net)):
                 return False
+                
+        if self.protocol:
+            if not (self.parser.protocol == self.protocol or self.parser.protocol == "ip"):
+                return False
 
         return True
 
@@ -207,6 +213,7 @@ if __name__ == '__main__':
     parser.add_option("-p", "--sport", dest="source_port", default=None, help="Source port to look for")
     parser.add_option("-I", "--dip", dest="destination_ip", default=None, help="Destination IP to look for")
     parser.add_option("-P", "--dport", dest="destination_port", default=None, help="Destination port to look for")
+    parser.add_option("-o", "--proto", dest="protocol", default=None, help="Protocol to look for")
 
     (options, args) = parser.parse_args()
 
@@ -215,7 +222,7 @@ if __name__ == '__main__':
         sys.exit()
 
     # initialize grepper and...
-    grepper = ACLGrepper(options.source_ip, options.source_port, options.destination_ip, options.destination_port, options.match_any)
+    grepper = ACLGrepper(options.source_ip, options.source_port, options.destination_ip, options.destination_port, options.protocol, options.match_any)
 
     # ...check all lines in all files (or stdin)
     for line in fileinput.input(args):
