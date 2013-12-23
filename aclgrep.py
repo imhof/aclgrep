@@ -29,7 +29,7 @@ class ACLParser:
     # Make sure they start with the most specific, as they are tried in order
     port_patterns = [
         r"\s(range\s+\d+\s+\d+)",
-        r"\s(n?eq\s+\d+)",
+        r"\s(n?eq\s(\d+(\s|$))+)",
         r"\s(n?eq\s+\S+)",
         r"\s(gt\s+\d+)",
         r"\s(lt\s+\d+)",
@@ -70,9 +70,9 @@ class ACLParser:
         result = [None, None]
         sorted_keys = sorted(hits.keys())
         if len(sorted_keys) > 0:
-            result[0] = hits[sorted_keys[0]]
+            result[0] = hits[sorted_keys[0]].strip()
         if len(sorted_keys) > 1:
-            result[1] = hits[sorted_keys[-1]]
+            result[1] = hits[sorted_keys[-1]].strip()
         return result
 
     def next_line(self, line):
@@ -201,6 +201,38 @@ class ACLGrepper:
         if self.protocol:
             if not (self.parser.protocol == self.protocol or self.parser.protocol == "ip"):
                 return False
+                
+        if self.source_port:
+            pattern = self.parser.source_port
+            
+            # any is ok anyway
+
+            # eq
+            if pattern[:2] == "eq":
+                parts = pattern.split()
+                if not self.source_port in parts[1:]:
+                    return False
+
+            # neq
+            if pattern[:3] == "neq":
+                if self.source_port == pattern[4:]:
+                    return False
+
+            # gt
+            if pattern[:2] == "gt":
+                if int(self.source_port) <= int(pattern[3:]):
+                    return False
+
+            # lt
+            if pattern[:2] == "lt":
+                if int(self.source_port) >= int(pattern[3:]):
+                    return False
+
+            # range
+            if pattern[:5] == "range":
+                parts = pattern.split()
+                if int(self.source_port) < int(parts[1]) or int(self.source_port) > int(parts[2]):
+                    return False
 
         return True
 

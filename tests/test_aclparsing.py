@@ -59,6 +59,10 @@ class ACLParserTest(unittest.TestCase):
         self.assertEqual("eq 4711", self.parser.source_port)
         self.assertEqual("eq 1986", self.parser.destination_port)
 
+        self.parser.next_line("permit udp 10.111.88.66 0.0.0.1 eq 198 945 10.111.34.0/14 eq 1986 6789 11103")
+        self.assertEqual("eq 198 945", self.parser.source_port)
+        self.assertEqual("eq 1986 6789 11103", self.parser.destination_port)
+
         self.parser.next_line("permit udp 10.111.34.0/14 range 4711 1045 10.111.88.66 0.0.0.1 gt 4711 ")
         self.assertEqual("range 4711 1045", self.parser.source_port)
         self.assertEqual("gt 4711", self.parser.destination_port)
