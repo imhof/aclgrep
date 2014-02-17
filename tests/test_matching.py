@@ -109,6 +109,15 @@ class matching(unittest.TestCase):
         self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
 
         self.assertFalse(grepper.grep("just some random text"))
-        
+
+
+    def testMatchReal(self):
+        grepper = ACLGrepper("10.221.216.201", "5401", "10.221.69.143", "1024")
+
+        self.assertTrue(grepper.grep("permit tcp 10.221.216.200 0.0.0.1 range 5400 5413 host 10.221.69.143 gt 1023 established"))
+        self.assertFalse(grepper.grep("permit tcp 10.221.216.200 0.0.0.1 gt 1023 host 10.221.69.143 eq 22"))
+
+
+
 if __name__ == '__main__':
     unittest.main()

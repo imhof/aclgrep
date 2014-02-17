@@ -238,6 +238,38 @@ class ACLGrepper:
                 if int(self.source_port) < int(parts[1]) or int(self.source_port) > int(parts[2]):
                     return False
 
+        if self.destination_port:
+            pattern = self.parser.destination_port
+
+            # any is ok anyway
+
+            # eq
+            if pattern[:2] == "eq":
+                parts = pattern.split()
+                if not self.destination_port in parts[1:]:
+                    return False
+
+            # neq
+            if pattern[:3] == "neq":
+                if self.destination_port == pattern[4:]:
+                    return False
+
+            # gt
+            if pattern[:2] == "gt":
+                if int(self.destination_port) <= int(pattern[3:]):
+                    return False
+
+            # lt
+            if pattern[:2] == "lt":
+                if int(self.destination_port) >= int(pattern[3:]):
+                    return False
+
+            # range
+            if pattern[:5] == "range":
+                parts = pattern.split()
+                if int(self.destination_port) < int(parts[1]) or int(self.destination_port) > int(parts[2]):
+                    return False
+
         return True
 
 
