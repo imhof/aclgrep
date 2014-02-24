@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
+# Copyright 2013 Steffen Imhof, licensed under the MIT License (MIT)
 
 import sys
 import unittest

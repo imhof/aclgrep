@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-'''Simple script to grep for networks (net + wildcard, subnetmask or CIDR) containing a given IP address.'''
+'''Simple script to grep for networks (net + wildcard, subnetmask or CIDR) containing a given IP address.
+
+   Copyright 2013, Steffen Imhof
+   Licensed under the MIT License (MIT), see LICENSE file for details
+'''
 
 import socket, struct, sys, re, fileinput
 from optparse import OptionParser
