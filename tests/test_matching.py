@@ -111,6 +111,12 @@ class matching(unittest.TestCase):
 
         self.assertFalse(grepper.grep("just some random text"))
 
+    def testPortsOnly(self):
+        grepper = ACLGrepper(None, "4711", None, "124")
+
+        self.assertFalse(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
+        self.assertFalse(grepper.grep("10 permit tcp 10.221.224.120/29 eq 124 224.1.2.102/16 eq 124"))
+        self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 124"))
 
     def testMatchReal(self):
         grepper = ACLGrepper("10.221.216.201", "5401", "10.221.69.143", "1024")
