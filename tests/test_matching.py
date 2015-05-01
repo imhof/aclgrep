@@ -74,8 +74,8 @@ class matching(unittest.TestCase):
     def testMatchIP(self):
         grepper = ACLGrepper(None, None, None, None, "ip")
         
-        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
-        self.assertFalse(grepper.grep("10 permit icmp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
+        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 224.1.2.102/16"))
+        self.assertFalse(grepper.grep("10 permit icmp 10.221.224.120/29 224.1.2.102/16"))
         self.assertFalse(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
         self.assertFalse(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
 
@@ -84,8 +84,8 @@ class matching(unittest.TestCase):
     def testMatchICMP(self):
         grepper = ACLGrepper(None, None, None, None, "icmp")
         
-        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
-        self.assertTrue(grepper.grep("10 permit icmp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
+        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 224.1.2.102/16"))
+        self.assertTrue(grepper.grep("10 permit icmp 10.221.224.120/29 224.1.2.102/16"))
         self.assertFalse(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
         self.assertFalse(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
 
@@ -94,8 +94,8 @@ class matching(unittest.TestCase):
     def testMatchUDP(self):
         grepper = ACLGrepper(None, None, None, None, "udp")
         
-        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
-        self.assertFalse(grepper.grep("10 permit icmp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
+        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 224.1.2.102/16"))
+        self.assertFalse(grepper.grep("10 permit icmp 10.221.224.120/29 224.1.2.102/16"))
         self.assertTrue(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
         self.assertFalse(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
 
@@ -104,8 +104,8 @@ class matching(unittest.TestCase):
     def testMatchTCP(self):
         grepper = ACLGrepper(None, None, None, None, "tcp")
         
-        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
-        self.assertFalse(grepper.grep("10 permit icmp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
+        self.assertTrue(grepper.grep("10 permit ip 10.221.224.120/29 224.1.2.102/16 "))
+        self.assertFalse(grepper.grep("10 permit icmp 10.221.224.120/29 224.1.2.102/16"))
         self.assertFalse(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
         self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
 
