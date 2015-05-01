@@ -213,6 +213,10 @@ class ACLGrepper:
         if self.source_port:
             pattern = self.parser.source_port
             
+            # no source port found in rule
+            if not pattern:
+                return False
+
             # any is ok anyway
 
             # eq
@@ -244,6 +248,10 @@ class ACLGrepper:
 
         if self.destination_port:
             pattern = self.parser.destination_port
+
+            # no destination port found in rule
+            if not pattern:
+                return False
 
             # any is ok anyway
 
