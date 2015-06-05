@@ -1,6 +1,34 @@
 
+aclsed
+
+
+Sollte die Eingabedatei zeilenweise betrachten
+Dabei wird das Verhalten über ein Configfile bestimmt, in dem Regelmatches angegeben werden und die zugehörige Aktion
+Für die Matches kommen etwa die Parameter zum Zuge, die es im Augenblick für aclgrep.py gibt.
+
+
+Offene Frage, was passiert bei mehreren Matches (erster gilt? alle werden ausgewertet? zweiter Match für die veränderte Regel oder Original?)
+
+
+
+
 Configfile:
 
 protocol=tcp destination_port=80 destination_net=224.0.0.0/24 -> print with destination_net=225.0.0.0/24
 -> print
+
+
+match -> action
+
+
+action -> skip, print
+
+
+
+
+
+
+Duplicates rausfiltern würde ich wahrscheinlich in einem Extratool erledigen.
+Das ist vom Prinzip her einfach ein bisschen was anderes als die einzelnen Regeln betrachten und transformieren.
+
 
