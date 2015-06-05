@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import re
+import socket
+import struct
 
 
 # Add special patterns to detect IP networks and hosts here
@@ -27,25 +29,92 @@ protocol_patterns = [
     r"\s(icmp|ip|tcp|udp)\s"
 ]
 
+# potential additional information at the end of the rule
+# currently only "established" is relevant
+extra_patterns = [
+    r"\s(established)(\s|$)"
+]
+
 # compile all patterns to regexes
 net_patterns = [re.compile(p) for p in net_patterns]
 port_patterns = [re.compile(p) for p in port_patterns]
 protocol_patterns = [re.compile(p) for p in protocol_patterns]
+extra_patterns = [re.compile(p) for p in extra_patterns]
 
+splitter = re.compile(r"[^0-9.]")
 
+def ip_to_bits(address):
+    """Turns an IP address in dot notation into a single long value."""
+
+    # Fixup IP addresses with leading zeros
+    fixed_address = ".".join([str(int(x)) for x in address.split(".")])
+
+    try:
+        return struct.unpack("!L", socket.inet_aton(fixed_address))[0]
+    except socket.error:
+        raise ValueError("Invalid IP address")
+
+def ip_in_net(ip, net):
+    """Checks if an IP adress is contained in a network described by a pair (net address, subnetmask).
+       All values are given as longs."""
+    return net[0] & net[1] == ip & net[1]
+
+def net_in_net(container, contained):
+    """Checks if a subnet is contained in a network described by a pair (net address, subnetmask).
+       All values are given as longs."""
+    return (container[0] & container[1] == contained[0] & container[1]) and (container[1] <= contained[1])
+
+def ip_and_mask_to_pair(pattern):
+    """Takes a mask pattern and creates a pair (net address, subnet mask) from it.
+       Detects automatically if the mask is a subnet mask or a wildcard mask, assuming the bits are
+       set continuously in either."""
+
+    if pattern == "any":
+        return (0xffffffff, 0x00000000) # 0.0.0.0/0
+
+    parts = re.split(splitter, pattern)
+    net = ip_to_bits(parts[0])
+    net_or_wildcard = ip_to_bits(parts[1])
+
+    # special case full bits -> subnet mask
+    if 0xffffffff == net_or_wildcard:
+        return (net, 0xffffffff)
+
+    # check if the mask is really a mask (only set bits from the right or left)
+    if net_or_wildcard & (net_or_wildcard + 1) != 0:
+        net_or_wildcard = 0xffffffff ^ net_or_wildcard
+        if net_or_wildcard & (net_or_wildcard + 1) != 0:
+            # it's not, never match
+            return (0, 0xffffffff)
+
+    return (net, 0xffffffff ^ net_or_wildcard)
+
+def ip_and_cidr_to_pair(pattern):
+    '''Takes a CIDR pattern and creates a pair (net address, subnetmask) from it.'''
+    parts = pattern.split("/")
+    net = ip_to_bits(parts[0])
+    wildcard = (1 << (32-int(parts[1])))-1
+    return (net, 0xffffffff ^ wildcard)
+
+def net_string_to_pair(pattern):
+    if pattern.find("/") == -1:
+        return ip_and_mask_to_pair(pattern)
+    else:
+        return ip_and_cidr_to_pair(pattern)
 
 class ACL:
     
     def __init__(self):
                 
         self.proto = ""
-        self.source = "0.0.0.0"
+        self.source = (0xffffffff, 0x00000000)
         self.source_port_min = 0
         self.source_port_max = 65536
-        self.dest = "0.0.0.0"
+        self.dest = (0xffffffff, 0x00000000)
         self.dest_port_min = 0
         self.dest_port_max = 65536
         self.extra = ""
+        self.orig = ""
         
     def assign_source_dest(self, hits):
         """Take the first and last one to weed out the invalid hits."""
@@ -69,34 +138,80 @@ class ACL:
                 m = p.search(line, m.start() + 1)
         return hits
 
-    def set_ports(self, basename, ports):
-        pass
+    def set_ports(self, basename, pattern):
+        setattr(self, basename + "_port_min", 0)
+        setattr(self, basename + "_port_max", 65536)
+
+        if pattern == "any":
+            pass
+
+        # eq
+        if pattern[:2] == "eq":
+            setattr(self, basename + "_port_min", int(pattern[3:]))
+            setattr(self, basename + "_port_max", int(pattern[3:]))
+
+        # gt
+        if pattern[:2] == "gt":
+            setattr(self, basename + "_port_min", int(pattern[3:]) + 1)
+
+        # lt
+        if pattern[:2] == "lt":
+            setattr(self, basename + "_port_max", int(pattern[3:]) - 1)
+
+        # range
+        if pattern[:5] == "range":
+            parts = pattern.split()
+            setattr(self, basename + "_port_min", int(parts[1]))
+            setattr(self, basename + "_port_max", int(parts[2]))
 
     def read_from(self, line):
 
+        self.orig = line
+
         # first look for all net matches
         hits = self.match_patterns(line, net_patterns)
-        (self.source, self.dest) = self.assign_source_dest(hits)
+        (source, dest) = self.assign_source_dest(hits)
 
         # transform simple hosts into CIDR form
-        if self.source and not "any" in self.source and not "/" in self.source and not " " in self.source:
-            self.source += "/32"
-        if self.dest and not "any" in self.dest and not "/" in self.dest and not " " in self.dest:
-            self.dest += "/32"
+        if source and not "any" in source and not "/" in source and not " " in source:
+            source += "/32"
+        if dest and not "any" in dest and not "/" in dest and not " " in dest:
+            dest += "/32"
+
+        self.source = net_string_to_pair(source)
+        self.dest = net_string_to_pair(dest)
 
         # second look for all port matches
         hits = self.match_patterns(line, port_patterns)
         (source_port, destination_port) = self.assign_source_dest(hits)
         
-        set_ports("source", source_port)
-        set_ports("dest", destination_port)
+        if source_port: self.set_ports("source", source_port)
+        if destination_port: self.set_ports("dest", destination_port)
         
         # look for all protocol matches
         hits = self.match_patterns(line, protocol_patterns)
         if len(hits) == 1:
             self.proto = hits.popitem()[1]
 
+        # look for all extra matches
+        hits = self.match_patterns(line, extra_patterns)
+        if len(hits) == 1:
+            self.extra = hits.popitem()[1]
+
     def contains(self, other):
+        # check protocol
+        if other.proto == "ip" and self.proto != "ip":
+            return False
+        if self.proto != "ip" and self.proto != other.proto:
+            return False
+
+        # check addresses
+        if not net_in_net(self.source, other.source):
+            return False
+        if not net_in_net(self.dest, other.dest):
+            return False
+
+        # check ports
         if self.source_port_min > other.source_port_min:
             return False
         if self.source_port_max < other.source_port_max:
@@ -110,13 +225,24 @@ class ACL:
 
 if __name__ == '__main__':
     a = ACL()
+    a2 = ACL()
+    a3 = ACL()
     b = ACL()
-    
-    a.read_from("permit tcp 10.0.0.0/8 eq 80 any established")
 
-    print ("A", vars(a))
-    print ("B", vars(b))
+    a.read_from("permit ip 10.0.0.0/8 any")
+    a2.read_from("permit udp 10.0.0.0/8 any")
+    a3.read_from("permit ip 10.223.0.0/16 any")
+    b.read_from("permit tcp host 10.223.254.58 eq 81 10.224.196.100 0.0.0.3 gt 1023 established")
+
+    print("A", vars(a))
+    print("A2", vars(a2))
+    print("A3", vars(a3))
+    print("B", vars(b))
     
-    print a.contains(b)
-    print b.contains(a)
+    print(a.contains(b))
+    print(a2.contains(b))
+    print(a3.contains(b))
+    print(b.contains(a))
+    print(a.contains(a3))
+    print(a2.contains(a3))
 
