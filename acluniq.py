@@ -3,6 +3,9 @@
 import re
 import socket
 import struct
+import sys
+import fileinput
+import itertools
 
 
 # Add special patterns to detect IP networks and hosts here
@@ -29,6 +32,10 @@ protocol_patterns = [
     r"\s(icmp|ip|tcp|udp)\s"
 ]
 
+type_patterns = [
+    r"\s*(permit|deny)\s"
+]
+
 # potential additional information at the end of the rule
 # currently only "established" is relevant
 extra_patterns = [
@@ -40,6 +47,7 @@ net_patterns = [re.compile(p) for p in net_patterns]
 port_patterns = [re.compile(p) for p in port_patterns]
 protocol_patterns = [re.compile(p) for p in protocol_patterns]
 extra_patterns = [re.compile(p) for p in extra_patterns]
+type_patterns = [re.compile(p) for p in type_patterns]
 
 splitter = re.compile(r"[^0-9.]")
 
@@ -107,6 +115,7 @@ class ACL:
     def __init__(self):
                 
         self.proto = ""
+        self.type = ""
         self.source = (0xffffffff, 0x00000000)
         self.source_port_min = 0
         self.source_port_max = 65536
@@ -167,38 +176,56 @@ class ACL:
     def read_from(self, line):
 
         self.orig = line
+        
+        # first check the type
+        hits = self.match_patterns(line, type_patterns)
+        if not hits:
+            return False
+        self.type = hits.popitem()[1]
 
-        # first look for all net matches
+        # now look for all net matches
         hits = self.match_patterns(line, net_patterns)
         (source, dest) = self.assign_source_dest(hits)
 
-        # transform simple hosts into CIDR form
-        if source and not "any" in source and not "/" in source and not " " in source:
-            source += "/32"
-        if dest and not "any" in dest and not "/" in dest and not " " in dest:
-            dest += "/32"
+        if not source and not dest:
+            return False
+            
+        try:
+            # transform simple hosts into CIDR form
+            if source and not "any" in source and not "/" in source and not " " in source:
+                source += "/32"
+            if dest and not "any" in dest and not "/" in dest and not " " in dest:
+                dest += "/32"
 
-        self.source = net_string_to_pair(source)
-        self.dest = net_string_to_pair(dest)
+            self.source = net_string_to_pair(source)
+            self.dest = net_string_to_pair(dest)
 
-        # second look for all port matches
-        hits = self.match_patterns(line, port_patterns)
-        (source_port, destination_port) = self.assign_source_dest(hits)
+            # second look for all port matches
+            hits = self.match_patterns(line, port_patterns)
+            (source_port, destination_port) = self.assign_source_dest(hits)
         
-        if source_port: self.set_ports("source", source_port)
-        if destination_port: self.set_ports("dest", destination_port)
+            if source_port: self.set_ports("source", source_port)
+            if destination_port: self.set_ports("dest", destination_port)
         
-        # look for all protocol matches
-        hits = self.match_patterns(line, protocol_patterns)
-        if len(hits) == 1:
-            self.proto = hits.popitem()[1]
+            # look for all protocol matches
+            hits = self.match_patterns(line, protocol_patterns)
+            if len(hits) == 1:
+                self.proto = hits.popitem()[1]
 
-        # look for all extra matches
-        hits = self.match_patterns(line, extra_patterns)
-        if len(hits) == 1:
-            self.extra = hits.popitem()[1]
+            # look for all extra matches
+            hits = self.match_patterns(line, extra_patterns)
+            if len(hits) == 1:
+                self.extra = hits.popitem()[1]
+        except:
+            # catch unexpected parsing errors
+            return False
+        return True
 
     def contains(self, other):
+        # check type
+        if other.type != self.type:
+            return False
+        
         # check protocol
         if other.proto == "ip" and self.proto != "ip":
             return False
@@ -222,8 +249,8 @@ class ACL:
             return False
             
         return True
-
-if __name__ == '__main__':
+        
+def simple_test():
     a = ACL()
     a2 = ACL()
     a3 = ACL()
@@ -245,4 +272,32 @@ if __name__ == '__main__':
     print(b.contains(a))
     print(a.contains(a3))
     print(a2.contains(a3))
+
+    
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        simple_test()
+        sys.exit()
+    
+    lines = list(fileinput.input())
+    count = len(lines)
+    
+    acl1 = ACL()
+    acl2 = ACL()
+    
+    for x in range(0, count):
+        print x
+        if not acl1.read_from(lines[x]):
+            continue
+            
+        for y in range(x+1, count):
+            if not acl2.read_from(lines[y]):
+                continue
+                
+            if acl1.contains(acl2):
+                print("XXX", lines[x], lines[y])
+            
+        
+    
 
