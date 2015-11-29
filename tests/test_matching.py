@@ -118,6 +118,13 @@ class matching(unittest.TestCase):
         self.assertFalse(grepper.grep("10 permit tcp 10.221.224.120/29 eq 124 224.1.2.102/16 eq 124"))
         self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 124"))
 
+    def testNamedPorts(self):
+        grepper = ACLGrepper(None, "80", None, "22")
+
+        self.assertFalse(grepper.grep("10 permit udp 10.221.224.120/29 eq ssh 224.1.2.102/16 eq telnet"))
+        self.assertFalse(grepper.grep("10 permit tcp 10.221.224.120/29 eq ftp 224.1.2.102/16 eq ssh"))
+        self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 eq www 224.1.2.102/16 eq ssh"))
+
     def testMatchReal(self):
         grepper = ACLGrepper("10.221.216.201", "5401", "10.221.69.143", "1024")
 

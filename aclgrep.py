@@ -10,6 +10,13 @@ import socket, struct, sys, re, fileinput
 from optparse import OptionParser
 
 
+PORT_NAMES = {
+    "ssh": "22",
+    "telnet": "23",
+    "www": "80"
+}
+
+
 class ACLParser:
     """Helper class to parse an ACL file line by line.
        This will find out protocol, networks and ports for each line and keeps track
@@ -50,6 +57,9 @@ class ACLParser:
         self.port_patterns = [re.compile(p) for p in self.port_patterns]
         self.protocol_patterns = [re.compile(p) for p in self.protocol_patterns]
 
+        # prepare port name map regex (see https://www.safaribooksonline.com/library/view/python-cookbook-2nd/0596007973/ch01s19.html)
+        self.port_names = re.compile("\\b" + "\\b|\\b".join(map(re.escape, PORT_NAMES)) + "\\b")
+
     def reset_transients(self):
         self.source_net = None
         self.source_port = None
@@ -82,6 +92,9 @@ class ACLParser:
     def next_line(self, line):
         self.reset_transients()
 
+        # transform named ports to numbers (see https://www.safaribooksonline.com/library/view/python-cookbook-2nd/0596007973/ch01s19.html)
+        line = self.port_names.sub(lambda match: PORT_NAMES[match.group(0)], line)
+
         # first look for all net matches
         hits = self.match_patterns(line, self.net_patterns)
         (self.source_net, self.destination_net) = self.assign_source_dest(hits)
@@ -91,8 +104,6 @@ class ACLParser:
             self.source_net += "/32"
         if self.destination_net and not "any" in self.destination_net and not "/" in self.destination_net and not " " in self.destination_net:
             self.destination_net += "/32"
-
-
 
         # second look for all port matches
         hits = self.match_patterns(line, self.port_patterns)

@@ -71,7 +71,7 @@ class ACLParserTest(unittest.TestCase):
         # any cases
         self.parser.next_line("access-list acl761 line 3 extended permit tcp any host 10.114.6.135 eq ssh")
         self.assertEqual("any", self.parser.source_port)
-        self.assertEqual("eq ssh", self.parser.destination_port)
+        self.assertEqual("eq 22", self.parser.destination_port)
 
         self.parser.next_line("50 deny udp 10.111.114.0/0.0.0.155 neq 1035 any")
         self.assertEqual("neq 1035", self.parser.source_port)
