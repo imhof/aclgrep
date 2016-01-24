@@ -13,7 +13,9 @@ from optparse import OptionParser
 PORT_NAMES = {
     "ssh": "22",
     "telnet": "23",
-    "www": "80"
+    "www": "80",
+    "snmp": "161",
+    "snmptrap": "162"
 }
 
 
