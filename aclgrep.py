@@ -81,7 +81,7 @@ class ACLParser:
                 m = p.search(line, m.start() + 1)
         return hits
 
-    def assign_source_dest(self, hits):
+    def assign_source_dest(self, hits, line):
         """Take the first and last one to weed out the invalid hits."""
         result = [None, None]
         sorted_keys = sorted(hits.keys())
@@ -89,6 +89,16 @@ class ACLParser:
             result[0] = hits[sorted_keys[0]].strip()
         if len(sorted_keys) > 1:
             result[1] = hits[sorted_keys[-1]].strip()
+
+        # if there is only one hit, we must decide whether it is source or destination
+        # This should only happen for ports, so let's see if it is at the end of the line
+        # (should be destination then)
+        if len(sorted_keys) == 1:
+            hit = hits[sorted_keys[0]]
+            if line.index(hit) + len(hit) > len(line) - 4:
+
+                result[1] = result[0]
+                result[0] = None
         return result
 
     def next_line(self, line):
@@ -99,7 +109,7 @@ class ACLParser:
 
         # first look for all net matches
         hits = self.match_patterns(line, self.net_patterns)
-        (self.source_net, self.destination_net) = self.assign_source_dest(hits)
+        (self.source_net, self.destination_net) = self.assign_source_dest(hits, line)
 
         # transform simple hosts into CIDR form
         if self.source_net and not "any" in self.source_net and not "/" in self.source_net and not " " in self.source_net:
@@ -109,7 +119,7 @@ class ACLParser:
 
         # second look for all port matches
         hits = self.match_patterns(line, self.port_patterns)
-        (self.source_port, self.destination_port) = self.assign_source_dest(hits)
+        (self.source_port, self.destination_port) = self.assign_source_dest(hits, line)
 
         # look for all protocol matches
         hits = self.match_patterns(line, self.protocol_patterns)
