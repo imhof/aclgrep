@@ -67,6 +67,19 @@ class ACLParserTest(unittest.TestCase):
         self.parser.next_line("permit udp 10.111.34.0/14 range 4711 1045 10.111.88.66 0.0.0.1 gt 4711 ")
         self.assertEqual("range 4711 1045", self.parser.source_port)
         self.assertEqual("gt 4711", self.parser.destination_port)
+        
+        #ranges
+        self.parser.next_line("7310 permit udp 10.223.217.27/32 range 161 162 172.29.205.170/32")
+        self.assertEqual("range 161 162", self.parser.source_port)
+
+        self.parser.next_line("7310 permit udp 10.223.217.27/32 range snmp snmptrap 172.29.205.170/32")
+        self.assertEqual("range 161 162", self.parser.source_port)
+
+        self.parser.next_line("7310 permit udp 10.223.217.27/32 172.29.205.170/32 range 161 162")
+        self.assertEqual("range 161 162", self.parser.destination_port)
+
+        self.parser.next_line("7310 permit udp 10.223.217.27/32 172.29.205.170/32 range snmp snmptrap")
+        self.assertEqual("range 161 162", self.parser.destination_port)
 
         # any cases
         self.parser.next_line("access-list acl761 line 3 extended permit tcp any host 10.114.6.135 eq ssh")
