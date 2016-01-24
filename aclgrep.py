@@ -318,4 +318,4 @@ if __name__ == '__main__':
     # ...check all lines in all files (or stdin)
     for line in fileinput.input(args):
         if grepper.grep(line):
-            print(line)
+            print(line.strip())
