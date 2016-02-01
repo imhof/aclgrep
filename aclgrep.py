@@ -279,99 +279,104 @@ class ACLGrepper:
 
     def grep(self, line):
         self.parser.next_line(line)
+        
+        try:
 
-        # FIXME check any if desired
-        if self.source_ip_address:
-            if self.parser.source_net == "any":
-                return self.match_any
-            if not self.parser.source_net:
-                return False
-            if not self.ip_in_net(self.source_ip_address, self.net_string_to_pair(self.parser.source_net)):
-                return False
+            # FIXME check any if desired
+            if self.source_ip_address:
+                if self.parser.source_net == "any":
+                    return self.match_any
+                if not self.parser.source_net:
+                    return False
+                if not self.ip_in_net(self.source_ip_address, self.net_string_to_pair(self.parser.source_net)):
+                    return False
 
-        if self.destination_ip_address:
-            if self.parser.destination_net == "any":
-                return self.match_any
-            if not self.parser.destination_net:
-                return False
-            if not self.ip_in_net(self.destination_ip_address, self.net_string_to_pair(self.parser.destination_net)):
-                return False
+            if self.destination_ip_address:
+                if self.parser.destination_net == "any":
+                    return self.match_any
+                if not self.parser.destination_net:
+                    return False
+                if not self.ip_in_net(self.destination_ip_address, self.net_string_to_pair(self.parser.destination_net)):
+                    return False
                 
-        if self.protocol:
-            if not (self.parser.protocol == self.protocol or self.parser.protocol == "ip"):
-                return False
+            if self.protocol:
+                if not (self.parser.protocol == self.protocol or self.parser.protocol == "ip"):
+                    return False
                 
-        if self.source_port:
-            pattern = self.parser.source_port
+            if self.source_port:
+                pattern = self.parser.source_port
             
-            # no source port found in rule
-            if not pattern:
-                return False
-
-            # any is ok anyway
-
-            # eq
-            if pattern[:2] == "eq":
-                parts = pattern.split()
-                if not self.source_port in parts[1:]:
+                # no source port found in rule
+                if not pattern:
                     return False
 
-            # neq
-            if pattern[:3] == "neq":
-                if self.source_port == pattern[4:]:
+                # any is ok anyway
+
+                # eq
+                if pattern[:2] == "eq":
+                    parts = pattern.split()
+                    if not self.source_port in parts[1:]:
+                        return False
+
+                # neq
+                if pattern[:3] == "neq":
+                    if self.source_port == pattern[4:]:
+                        return False
+
+                # gt
+                if pattern[:2] == "gt":
+                    if int(self.source_port) <= int(pattern[3:]):
+                        return False
+
+                # lt
+                if pattern[:2] == "lt":
+                    if int(self.source_port) >= int(pattern[3:]):
+                        return False
+
+                # range
+                if pattern[:5] == "range":
+                    parts = pattern.split()
+                    if int(self.source_port) < int(parts[1]) or int(self.source_port) > int(parts[2]):
+                        return False
+
+            if self.destination_port:
+                pattern = self.parser.destination_port
+
+                # no destination port found in rule
+                if not pattern:
                     return False
 
-            # gt
-            if pattern[:2] == "gt":
-                if int(self.source_port) <= int(pattern[3:]):
-                    return False
+                # any is ok anyway
 
-            # lt
-            if pattern[:2] == "lt":
-                if int(self.source_port) >= int(pattern[3:]):
-                    return False
+                # eq
+                if pattern[:2] == "eq":
+                    parts = pattern.split()
+                    if not self.destination_port in parts[1:]:
+                        return False
 
-            # range
-            if pattern[:5] == "range":
-                parts = pattern.split()
-                if int(self.source_port) < int(parts[1]) or int(self.source_port) > int(parts[2]):
-                    return False
+                # neq
+                if pattern[:3] == "neq":
+                    if self.destination_port == pattern[4:]:
+                        return False
 
-        if self.destination_port:
-            pattern = self.parser.destination_port
+                # gt
+                if pattern[:2] == "gt":
+                    if int(self.destination_port) <= int(pattern[3:]):
+                        return False
 
-            # no destination port found in rule
-            if not pattern:
-                return False
+                # lt
+                if pattern[:2] == "lt":
+                    if int(self.destination_port) >= int(pattern[3:]):
+                        return False
 
-            # any is ok anyway
-
-            # eq
-            if pattern[:2] == "eq":
-                parts = pattern.split()
-                if not self.destination_port in parts[1:]:
-                    return False
-
-            # neq
-            if pattern[:3] == "neq":
-                if self.destination_port == pattern[4:]:
-                    return False
-
-            # gt
-            if pattern[:2] == "gt":
-                if int(self.destination_port) <= int(pattern[3:]):
-                    return False
-
-            # lt
-            if pattern[:2] == "lt":
-                if int(self.destination_port) >= int(pattern[3:]):
-                    return False
-
-            # range
-            if pattern[:5] == "range":
-                parts = pattern.split()
-                if int(self.destination_port) < int(parts[1]) or int(self.destination_port) > int(parts[2]):
-                    return False
+                # range
+                if pattern[:5] == "range":
+                    parts = pattern.split()
+                    if int(self.destination_port) < int(parts[1]) or int(self.destination_port) > int(parts[2]):
+                        return False
+        except ValueError:
+            # some trouble when parsing stuff, let's assume this is not a match
+            return False
 
         return True
 
