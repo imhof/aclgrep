@@ -117,6 +117,9 @@ class matching(unittest.TestCase):
         self.assertFalse(grepper.grep("10 permit udp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 4711"))
         self.assertFalse(grepper.grep("10 permit tcp 10.221.224.120/29 eq 124 224.1.2.102/16 eq 124"))
         self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16 eq 124"))
+        self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 224.1.2.102/16 eq 124"))
+        self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 eq 4711 224.1.2.102/16"))
+        self.assertTrue(grepper.grep("10 permit tcp 10.221.224.120/29 224.1.2.102/16"))
 
     def testNoICMPWhenPortGivenEvenIfAny(self):
         grepper = ACLGrepper(None, "80", None, "80", "any")
